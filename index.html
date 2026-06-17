@@ -86,6 +86,7 @@
   .chip:hover{color:var(--ink);border-color:rgba(255,255,255,.2)}
   .chip.sel{background:color-mix(in srgb,var(--accent) 18%,transparent);border-color:var(--accent);color:var(--ink)}
   .chip.manage{color:var(--faint);border-style:dashed}
+  .chip.dragging{opacity:.4}
   .primary{font-family:'Chakra Petch';font-weight:700;letter-spacing:.18em;text-indent:.18em;font-size:16px;text-transform:uppercase;cursor:pointer;background:var(--accent);color:#0a0a0a;border:none;border-radius:13px;padding:17px 46px;min-width:240px;transition:transform .14s,box-shadow .14s,background .9s ease;box-shadow:0 10px 34px color-mix(in srgb,var(--accent) 30%,transparent)}
   .primary:hover{transform:translateY(-2px);box-shadow:0 14px 40px color-mix(in srgb,var(--accent) 42%,transparent)}
   .primary:active{transform:translateY(0)}
@@ -96,6 +97,9 @@
   .sbtn:hover{color:var(--ink);border-color:rgba(255,255,255,.2)}
   .notewrap{display:none;flex-direction:column;align-items:center;gap:12px;width:100%;max-width:520px}
   .notewrap.show{display:flex}
+  .livenote{display:none;flex-direction:column;align-items:center;width:100%;max-width:520px;margin-bottom:2px}
+  .livenote.show{display:flex}
+  .livenote .note{height:54px}
   .noteq{font-family:'JetBrains Mono';font-size:12px;letter-spacing:.1em;color:var(--mute);text-transform:uppercase;text-align:center}
   .noteq .ok{color:var(--rest)}
   textarea.note{width:100%;background:var(--surface);border:1px solid var(--line);border-radius:12px;color:var(--ink);font-family:'Inter';font-size:15px;padding:14px 16px;resize:none;height:64px;transition:border-color .15s}
@@ -176,6 +180,17 @@
   .addrow input{flex:1;background:var(--surface-2);border:1px solid var(--line);border-radius:9px;color:var(--ink);font-family:'Inter';font-size:14px;padding:10px 12px}
   .addrow input:focus{outline:none;border-color:var(--accent)}
   .metarow{display:flex;align-items:center;gap:12px;margin-top:22px;padding-top:18px;border-top:1px solid var(--line)}
+  .rchips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+  .day-sep{height:1px;background:var(--line);margin:18px 0}
+  .day-big-btn{width:100%;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);border-radius:12px;padding:16px;font-family:'JetBrains Mono';font-weight:700;letter-spacing:.05em;font-size:15px;cursor:pointer;transition:all .15s}
+  .day-big-btn:hover{filter:brightness(1.18)}
+  .day-big-btn.wake{border-color:var(--gold);color:var(--gold)}
+  .day-big-btn.sleep{border-color:var(--rest);color:var(--rest)}
+  .day-summary{background:var(--void);border:1px solid var(--line);border-radius:12px;padding:14px 16px;font-size:15px;color:var(--ink)}
+  .day-sub{font-family:'JetBrains Mono';font-size:12px;color:var(--mute);margin-top:6px;letter-spacing:.02em;line-height:1.5}
+  .rlabel{font-family:'JetBrains Mono';font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--mute)}
+  .day-phrase{display:none;margin-top:16px;padding:18px;border-radius:12px;background:color-mix(in srgb,var(--rest) 12%,transparent);border:1px solid color-mix(in srgb,var(--rest) 32%,transparent);color:var(--ink);font-size:15px;line-height:1.55;font-style:italic;text-align:center}
+  .day-phrase.show{display:block}
   .metarow label{font-family:'JetBrains Mono';font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--mute)}
   .metarow input{width:90px;background:var(--surface-2);border:1px solid var(--line);border-radius:9px;color:var(--ink);font-family:'Chakra Petch';font-weight:700;font-size:22px;padding:7px 12px;text-align:center}
   .modal-foot{display:flex;justify-content:flex-end;gap:10px;margin-top:22px}
@@ -196,6 +211,7 @@
   .tl .tn{color:var(--ink)}
   .tl.work .tn{color:var(--work-soft)}
   .tl.timer .ic{color:var(--gold)} .tl.act .ic{color:var(--rest)}
+  .tl.wake .ic{color:var(--gold)} .tl.sleep .ic{color:var(--rest)} .tl.rutina .ic{color:var(--rest-soft)}
   .tl .meta{color:var(--faint)}
   .tl-note{font-size:12px;color:var(--mute);margin:1px 0 4px 127px;line-height:1.4}
   @media (max-width:560px){.telemetry{gap:11px}.secondary{flex-wrap:wrap;justify-content:center}.primary{min-width:200px;padding:15px 32px}.goaltxt{min-width:auto}.tl{flex-wrap:wrap}.tl .tt{min-width:100px}.tl-note{margin-left:0}}
@@ -230,6 +246,7 @@
       <span class="pill streak" id="streakPill" title="Días seguidos cumpliendo la meta">🔥&nbsp;<b id="streakNum">0</b></span>
     </div>
     <div class="topbtns">
+      <button class="icobtn" id="dayBtn" title="Mi día">☀️</button>
       <button class="icobtn" id="histBtn" title="Historial">▦</button>
       <button class="icobtn" id="userBtn" title="Cuenta">●</button>
     </div>
@@ -274,6 +291,8 @@
       <button class="sbtn" id="saveEdit">Aplicar</button>
       <button class="sbtn" id="defEdit">Volver a 25 / 5</button>
     </div>
+
+    <div class="livenote" id="liveNoteWrap"><textarea class="note" id="liveNote" placeholder="📝 Notas del bloque (opcional) — escribe mientras trabajas…"></textarea></div>
 
     <button class="primary" id="primaryBtn">INICIAR</button>
     <div class="secondary">
@@ -341,6 +360,24 @@
   </div>
 </div>
 
+<div class="modal" id="dayModal">
+  <div class="modal-card">
+    <h3>☀️ MI DÍA</h3>
+    <p class="sub">Marca cuándo despiertas, qué haces y cuándo te vas a descansar. Todo queda en tu historial.</p>
+    <div id="wakeSection"></div>
+    <div class="day-sep"></div>
+    <div class="rlabel">¿Qué hiciste?</div>
+    <div class="rchips" id="rutinaChips"></div>
+    <textarea class="note" id="rutinaNota" placeholder="Escribe algo más (opcional)…" style="height:54px;margin-top:10px"></textarea>
+    <button class="vbtn" id="saveRutina" style="margin-top:10px;width:100%">Guardar rutina</button>
+    <div class="day-sep"></div>
+    <div id="sleepSection"></div>
+    <div class="day-phrase" id="dayPhrase"></div>
+    <div class="metarow"><label>Despertar</label><input type="time" id="metaWakeInput" value="06:00"><label style="margin-left:8px">Dormir</label><input type="time" id="metaSleepInput" value="22:00"></div>
+    <div class="modal-foot"><button class="sbtn" id="closeDay">Cerrar</button></div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script type="module">
@@ -362,19 +399,19 @@ const fbApp=initializeApp(firebaseConfig);
 const auth=getAuth(fbApp);
 const db=getFirestore(fbApp);
 const provider=new GoogleAuthProvider();
-const SCHEMA=3;
+const SCHEMA=4;
 
 const $=id=>document.getElementById(id);
 const appEl=$('app'),loginEl=$('login');
 const mm=$('mm'),ss=$('ss'),subline=$('subline'),eyebrow=$('eyebrow'),prog=$('prog'),reactNum=$('reactNum');
-const primaryBtn=$('primaryBtn'),notewrap=$('notewrap'),noteInput=$('noteInput'),lastReact=$('lastReact'),noteQuestion=$('noteQuestion');
+const primaryBtn=$('primaryBtn'),notewrap=$('notewrap'),noteInput=$('noteInput'),lastReact=$('lastReact'),noteQuestion=$('noteQuestion'),liveNoteWrap=$('liveNoteWrap'),liveNote=$('liveNote');
 const editwrap=$('editwrap'),editWork=$('editWork'),editRest=$('editRest');
 const phaseLabel=$('phaseLabel'),cycleNum=$('cycleNum');
 const areachips=$('areachips'),segs=$('segs'),goaltxt=$('goaltxt'),streakNum=$('streakNum');
 const histResults=$('histResults'),userEmail=$('userEmail');
 const resetBtn=$('resetBtn'),editBtn=$('editBtn'),timerBtn=$('timerBtn'),ausCancelBtn=$('ausCancelBtn');
 const ausrow=$('ausrow'),ausinput=$('ausinput'),ausName=$('ausName'),ausIdleBtn=$('ausIdleBtn'),ausPending=$('ausPending');
-const timerModal=$('timerModal'),areaModal=$('areaModal');
+const timerModal=$('timerModal'),areaModal=$('areaModal'),dayModal=$('dayModal');
 
 const RING_C=2*Math.PI*46;
 prog.style.strokeDasharray=RING_C; prog.style.strokeDashoffset=0;
@@ -385,10 +422,37 @@ let phase='trabajo',status='idle',remainingMs=workMin*60000,endAt=null,cycle=1;
 let reactTimer=null,tickTimer=null,ringStart=0,lastReactMs=0,pendingDocRef=null;
 let blockStartTs=null,blockEndTs=null;
 let uid=null;
-let areas=[],areaMap={},selectedAreaId=null,currentAreaId=null,metaDiaria=20;
+let areas=[],areaMap={},selectedAreaIds=[],currentAreaIds=[],metaDiaria=20;
+let dragEl=null;
 let todayWork=0,streak=0;
 let qctx=null;                 // quick timer context
 let openActivity=null,ausInt=null;
+let metaDespertar='06:00',metaDormir='22:00';
+let wokeToday=false,wakeTs=null,firstWorkTs=null,openSleep=null,rutinaSel=[];
+const RUTINA_DEF=['Bañé','Leí','Medité','Desayuné','Entrené','Oré'];
+const FRASES=[
+  'Hoy mataste al que eras ayer. Mañana despiertas más fuerte. Descansa, campeón.',
+  'Cerraste el día como un ganador. El sueño es donde se construye el siguiente nivel.',
+  'Descansa con orgullo: hoy avanzaste. Mañana atacas de nuevo, más afilado.',
+  'El que descansa con propósito, ataca con fuerza. Buenas noches, ganador.',
+  'Cada día que cumples, te alejas más del que se rinde. Recarga y vuelve.',
+  'No fue suerte, fue disciplina. Duerme tranquilo: te lo ganaste.',
+  'Hoy sembraste. El sueño es donde la semilla agarra fuerza. Mañana más.',
+  'Mientras otros se rinden, tú sumas un día más. Descansa, máquina.',
+  'El campeón también descansa: así es como vuelve más duro. Buenas noches.',
+  'Apagaste el día con todo. Mañana enciendes uno mejor. A descansar.',
+  'Disciplina hoy, libertad mañana. Cierra los ojos con la frente en alto.',
+  'Tu yo del futuro te agradece este día. Recarga para construir el de mañana.',
+  'Nadie va a empujar más fuerte que tú. Descansa y vuelve con todo.',
+  'Un día menos de excusas, un día más de pruebas. Buenas noches, ganador.',
+  'Hoy diste el paso que la mayoría evita. Duerme: mañana das el siguiente.'
+];
+function fraseDelDia(){const day=Math.floor(Date.now()/86400000);return FRASES[day%FRASES.length];}
+function parseHHMM(s){const p=(s||'0:0').split(':');return (+p[0]||0)*60+(+p[1]||0);}
+function minsOfDay(ts){const s=new Date(ts).toLocaleTimeString('en-GB',{timeZone:'America/Bogota',hour12:false,hour:'2-digit',minute:'2-digit'});const p=s.split(':');return (+p[0])*60+(+p[1]);}
+function hhmmTo12(s){let mins=parseHHMM(s),h=Math.floor(mins/60),m=mins%60;const ap=h>=12?'p. m.':'a. m.';h=h%12;if(h===0)h=12;return h+':'+String(m).padStart(2,'0')+' '+ap;}
+function durMin(m){m=Math.max(0,Math.round(m));if(m<60)return m+' min';const h=Math.floor(m/60),mm=m%60;return h+' h'+(mm?' '+mm+' m':'');}
+function diffTxt(actualMins,metaStr,wrapNight){let a=actualMins;if(wrapNight&&a<720)a+=1440;const diff=a-parseHHMM(metaStr),ad=Math.abs(diff),g=hhmmTo12(metaStr);if(ad<=3)return '🎯 Justo en tu meta ('+g+')';if(diff<0)return '✅ '+durMin(ad)+' antes de tu meta ('+g+')';return '⏰ '+durMin(ad)+' después de tu meta ('+g+')';}
 
 function genId(){try{if(window.crypto&&crypto.randomUUID)return 'a_'+crypto.randomUUID().slice(0,8);}catch(e){}return 'a_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
 function defaultAreas(){return ['Copies','Campañas','Logística','Edición','Análisis','Otro'].map(n=>({id:genId(),nombre:n,activa:true}));}
@@ -438,9 +502,19 @@ function renderGoal(){
 /* AREA CHIPS */
 function renderAreas(){
   areachips.innerHTML='';
-  activeAreas().forEach(a=>{const c=document.createElement('button');c.className='chip'+(a.id===selectedAreaId?' sel':'');c.textContent=a.nombre;c.onclick=()=>{selectedAreaId=a.id;renderAreas();};areachips.appendChild(c);});
-  const mng=document.createElement('button');mng.className='chip manage';mng.textContent='⚙ áreas';mng.onclick=openAreaModal;areachips.appendChild(mng);
+  activeAreas().forEach(a=>{
+    const c=document.createElement('button');c.className='chip'+(selectedAreaIds.includes(a.id)?' sel':'');c.textContent=a.nombre;c.dataset.id=a.id;c.draggable=true;
+    c.onclick=()=>toggleArea(a.id);
+    c.addEventListener('dragstart',e=>{dragEl=c;c.classList.add('dragging');try{e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',a.id);}catch(_){}});
+    c.addEventListener('dragend',()=>{c.classList.remove('dragging');dragEl=null;commitAreaOrder();});
+    areachips.appendChild(c);
+  });
+  const mng=document.createElement('button');mng.className='chip manage';mng.textContent='⚙ áreas';mng.draggable=false;mng.onclick=openAreaModal;areachips.appendChild(mng);
 }
+function toggleArea(id){const i=selectedAreaIds.indexOf(id);if(i>=0)selectedAreaIds.splice(i,1);else selectedAreaIds.push(id);renderAreas();}
+function areaAfterEl(x){const els=[...areachips.querySelectorAll('.chip:not(.dragging):not(.manage)')];let best=null,bestOff=-Infinity;els.forEach(el=>{const b=el.getBoundingClientRect();const off=x-(b.left+b.width/2);if(off<0&&off>bestOff){bestOff=off;best=el;}});return best;}
+function commitAreaOrder(){const ids=[...areachips.querySelectorAll('.chip:not(.manage)')].map(el=>el.dataset.id);const byId={};areas.forEach(a=>{byId[a.id]=a;});const reordered=ids.map(id=>byId[id]).filter(Boolean);const rest=areas.filter(a=>!ids.includes(a.id));areas=reordered.concat(rest);saveConfig();}
+areachips.addEventListener('dragover',e=>{if(!dragEl)return;e.preventDefault();const after=areaAfterEl(e.clientX);const mng=areachips.querySelector('.chip.manage');if(after==null){if(mng)areachips.insertBefore(dragEl,mng);else areachips.appendChild(dragEl);}else areachips.insertBefore(dragEl,after);});
 function showAreas(){if(phase==='trabajo'&&(status==='idle'||status==='paused'||status==='post'))areachips.classList.add('show');else areachips.classList.remove('show');}
 
 /* AUDIO */
@@ -470,9 +544,10 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden)onTick();}
 
 /* FIRESTORE WRITE */
 async function addRecord(obj){if(!uid)return null;try{return await addDoc(collection(db,'users',uid,'pomodoros'),Object.assign({fecha:todayStr(),schemaVersion:SCHEMA,creadoEn:serverTimestamp()},obj));}catch(e){console.error(e);toast('No se pudo guardar');return null;}}
-async function saveBlock(tipo,duracionMin,reaccionMs,categoriaId,horaInicio,horaFin){
-  const categoriaNombre=categoriaId?(areaMap[categoriaId]||null):null;
-  return await addRecord({tipo,duracionMin,reaccionMs,categoriaId:categoriaId||null,categoriaNombre,nota:'',horaInicio:horaInicio||null,horaFin:horaFin||null});
+async function saveBlock(tipo,duracionMin,reaccionMs,categoriaIds,horaInicio,horaFin){
+  const ids=Array.isArray(categoriaIds)?categoriaIds.slice():(categoriaIds?[categoriaIds]:[]);
+  const categoriaNombres=ids.map(id=>areaMap[id]||null);
+  return await addRecord({tipo,duracionMin,reaccionMs,categoriaIds:ids,categoriaNombres,nota:'',horaInicio:horaInicio||null,horaFin:horaFin||null});
 }
 
 /* POMODORO ENGINE */
@@ -482,14 +557,16 @@ async function startPhase(){
   if(status==='post'){await commitNote();pendingDocRef=null;}
   const resuming=(status==='paused');
   hideNote();hideEdit();hideAusInput();
-  if(phase==='trabajo')currentAreaId=selectedAreaId;
+  if(phase==='trabajo')currentAreaIds=selectedAreaIds.slice();
   if(!resuming)blockStartTs=Date.now();
+  if(!resuming && phase==='trabajo')liveNote.value='';
   status='running';endAt=Date.now()+remainingMs;
   appEl.classList.remove('ring');areachips.classList.remove('show');
+  if(phase==='trabajo')showLiveNote();else hideLiveNote();
   setSecondaryMode('run');setSub(phase==='trabajo'?'EN ACCIÓN':'RECARGA');setPrimary('PARAR');
   startHB();paint();
 }
-function pausePhase(){status='paused';remainingMs=endAt-Date.now();stopHB();setSub('En pausa');setPrimary('INICIAR');setSecondaryMode('ready');showAreas();paint();}
+function pausePhase(){status='paused';remainingMs=endAt-Date.now();stopHB();hideLiveNote();setSub('En pausa');setPrimary('INICIAR');setSecondaryMode('ready');showAreas();paint();}
 function fireAlarm(){
   stopHB();blockEndTs=Date.now();status='ring';appEl.classList.add('ring');areachips.classList.remove('show');setSecondaryMode('ring');
   setSub('¡APÁGALA Y SIGUE!');setPrimary('APAGAR ALARMA',true);
@@ -501,14 +578,14 @@ async function silenceAlarm(){
   stopAlarm();stopFlash();clearInterval(reactTimer);
   lastReactMs=Math.round(performance.now()-ringStart);
   appEl.classList.remove('ring');
-  const finished=phase,finishedAreaId=currentAreaId;
-  const ref=await saveBlock(finished,phaseDurMs(finished)/60000,lastReactMs,finished==='trabajo'?finishedAreaId:null,blockStartTs,blockEndTs);
+  const finished=phase,finishedAreaIds=currentAreaIds.slice();
+  const ref=await saveBlock(finished,phaseDurMs(finished)/60000,lastReactMs,finished==='trabajo'?finishedAreaIds:[],blockStartTs,blockEndTs);
   if(finished==='trabajo'){
     phase='descanso';remainingMs=phaseDurMs(phase);setAccent();paint();
     status='post';pendingDocRef=ref;
     lastReact.textContent=(lastReactMs/1000).toFixed(2)+'s';
-    noteQuestion.textContent='Ibas a: '+(areaMap[finishedAreaId]||'—')+' · ¿qué lograste? (opcional)';
-    noteInput.value='';showNote();areachips.classList.remove('show');
+    noteQuestion.textContent='Ibas a: '+(finishedAreaIds.map(id=>areaMap[id]).filter(Boolean).join(', ')||'—')+' · ¿qué lograste? (opcional)';
+    noteInput.value=liveNote.value;hideLiveNote();showNote();areachips.classList.remove('show');
     setSub('Bloque cerrado · escribe o ausenta');
     setPrimary('GUARDAR NOTA E IR AL DESCANSO');setSecondaryMode('post');
   }else{
@@ -520,7 +597,7 @@ function fullReset(){
   stopAlarm();stopFlash();stopHB();clearInterval(reactTimer);clearInterval(ausInt);
   workMin=DEF_WORK;restMin=DEF_REST;editWork.value=DEF_WORK;editRest.value=DEF_REST;
   phase='trabajo';status='idle';cycle=1;remainingMs=workMin*60000;openActivity=null;qctx=null;
-  appEl.classList.remove('ring');hideNote();hideEdit();hideAusInput();setAccent();paint();
+  appEl.classList.remove('ring');hideNote();hideEdit();hideAusInput();hideLiveNote();liveNote.value='';setAccent();paint();
   setSub('Listo para arrancar');setPrimary('INICIAR');setSecondaryMode('ready');showAreas();renderPending();toast('Reiniciado a 25 / 5');
 }
 
@@ -549,7 +626,7 @@ async function endQTimer(){
 /* INICIO / READY */
 function goReady(){
   status='idle';appEl.classList.remove('ring');setAccent();paint();
-  hideNote();hideAusInput();hideEdit();
+  hideNote();hideAusInput();hideEdit();hideLiveNote();
   setSub('Listo para arrancar');setPrimary('INICIAR');
   setSecondaryMode('ready');showAreas();renderPending();
 }
@@ -570,7 +647,7 @@ async function closeOpenActivity(){
 
 /* ABSENCE (timestamp based) */
 async function startActivity(nombre){
-  if(openActivity){toast('Ya tienes una ausencia abierta');hideAusInput();return;}
+  if(openActivity)await closeOpenActivity();
   await commitNote();pendingDocRef=null;
   const horaInicio=Date.now();
   const ref=await addRecord({tipo:'actividad',nombre,horaInicio,horaFin:null,abierta:true});
@@ -589,8 +666,19 @@ async function loadOpenActivity(){
   if(!uid)return;
   try{
     const snap=await getDocs(query(collection(db,'users',uid,'pomodoros'),where('abierta','==',true)));
-    let f=null;snap.forEach(d=>{const x=d.data();if(x.tipo==='actividad'&&!f)f={ref:d.ref,nombre:x.nombre,horaInicio:x.horaInicio};});
-    if(f)openActivity=f;
+    let f=null,s=null;snap.forEach(d=>{const x=d.data();if(x.tipo==='actividad'&&!f)f={ref:d.ref,nombre:x.nombre,horaInicio:x.horaInicio};if(x.tipo==='dormir'&&!s)s={ref:d.ref,horaInicio:x.horaInicio};});
+    if(f)openActivity=f;if(s)openSleep=s;
+  }catch(e){console.error(e);}
+}
+async function loadDayInfo(){
+  if(!uid)return;
+  wokeToday=false;wakeTs=null;firstWorkTs=null;
+  try{
+    const rows=await fetchRows(query(collection(db,'users',uid,'pomodoros'),where('fecha','==',todayStr())));
+    rows.forEach(r=>{
+      if(r.tipo==='despertar'){wokeToday=true;wakeTs=r.horaInicio;}
+      if(r.tipo==='trabajo'&&r.horaInicio&&(firstWorkTs===null||r.horaInicio<firstWorkTs))firstWorkTs=r.horaInicio;
+    });
   }catch(e){console.error(e);}
 }
 
@@ -614,6 +702,8 @@ $('defEdit').addEventListener('click',()=>{editWork.value=DEF_WORK;editRest.valu
 /* NOTE */
 function showNote(){notewrap.classList.add('show');appEl.classList.add('compact');}
 function hideNote(){notewrap.classList.remove('show');appEl.classList.remove('compact');}
+function showLiveNote(){liveNoteWrap.classList.add('show');}
+function hideLiveNote(){liveNoteWrap.classList.remove('show');}
 let noteSaveT=null;
 noteInput.addEventListener('input',()=>{clearTimeout(noteSaveT);noteSaveT=setTimeout(commitNote,700);});
 async function commitNote(){if(!pendingDocRef)return;try{await updateDoc(pendingDocRef,{nota:noteInput.value.trim()});}catch(e){console.error(e);}}
@@ -652,13 +742,13 @@ async function loadConfig(){
       if(!a||!a.length)a=defaultAreas();
       else if(typeof a[0]==='string')a=a.map(n=>({id:genId(),nombre:n,activa:true}));
       else a=a.map(o=>({id:o.id||genId(),nombre:o.nombre!=null?o.nombre:String(o),activa:o.activa!==false}));
-      areas=a;metaDiaria=d.metaDiaria||20;
-      await setDoc(cfgRef(),{areas,metaDiaria,schemaVersion:SCHEMA},{merge:true});
-    }else{areas=defaultAreas();metaDiaria=20;await setDoc(cfgRef(),{areas,metaDiaria,schemaVersion:SCHEMA});}
+      areas=a;metaDiaria=d.metaDiaria||20;metaDespertar=d.metaDespertar||'06:00';metaDormir=d.metaDormir||'22:00';
+      await setDoc(cfgRef(),{areas,metaDiaria,metaDespertar,metaDormir,schemaVersion:SCHEMA},{merge:true});
+    }else{areas=defaultAreas();metaDiaria=20;await setDoc(cfgRef(),{areas,metaDiaria,metaDespertar,metaDormir,schemaVersion:SCHEMA});}
   }catch(e){console.error(e);areas=defaultAreas();metaDiaria=20;}
-  rebuildAreaMap();const act=activeAreas();selectedAreaId=(act[0]&&act[0].id)||null;renderAreas();renderGoal();
+  rebuildAreaMap();selectedAreaIds=[];renderAreas();renderGoal();
 }
-async function saveConfig(){rebuildAreaMap();try{await setDoc(cfgRef(),{areas,metaDiaria,schemaVersion:SCHEMA},{merge:true});}catch(e){console.error(e);toast('No se pudo guardar config');}}
+async function saveConfig(){rebuildAreaMap();try{await setDoc(cfgRef(),{areas,metaDiaria,metaDespertar,metaDormir,schemaVersion:SCHEMA},{merge:true});}catch(e){console.error(e);toast('No se pudo guardar config');}}
 
 /* AREA MODAL */
 const areaList=$('areaList');
@@ -672,7 +762,7 @@ function renderAreaList(){
     const inp=document.createElement('input');inp.className='aname';inp.value=a.nombre;inp.maxLength=24;
     inp.onchange=()=>{const v=inp.value.trim();if(v){a.nombre=v;saveConfig();renderAreas();}else inp.value=a.nombre;};
     const del=document.createElement('button');del.className='del';del.textContent='✕';del.title='Archivar (se conserva en el historial)';
-    del.onclick=()=>{a.activa=false;if(selectedAreaId===a.id){const na=areas.find(x=>x.activa);selectedAreaId=na?na.id:null;}saveConfig();renderAreas();renderAreaList();};
+    del.onclick=()=>{a.activa=false;const i=selectedAreaIds.indexOf(a.id);if(i>=0)selectedAreaIds.splice(i,1);saveConfig();renderAreas();renderAreaList();};
     row.appendChild(inp);row.appendChild(del);areaList.appendChild(row);
   });
   if(arch.length){
@@ -685,7 +775,7 @@ function renderAreaList(){
     });
   }
 }
-$('addArea').addEventListener('click',()=>{const v=$('newArea').value.trim();if(!v)return;if(areas.some(a=>a.activa&&a.nombre===v)){toast('Ya existe');return;}const na={id:genId(),nombre:v,activa:true};areas.push(na);$('newArea').value='';if(!selectedAreaId)selectedAreaId=na.id;saveConfig();renderAreas();renderAreaList();});
+$('addArea').addEventListener('click',()=>{const v=$('newArea').value.trim();if(!v)return;if(areas.some(a=>a.activa&&a.nombre===v)){toast('Ya existe');return;}const na={id:genId(),nombre:v,activa:true};areas.push(na);$('newArea').value='';saveConfig();renderAreas();renderAreaList();});
 $('newArea').addEventListener('keydown',e=>{if(e.key==='Enter')$('addArea').click();});
 $('metaInput').addEventListener('change',()=>{const v=Math.max(1,Math.min(60,parseInt($('metaInput').value)||20));metaDiaria=v;$('metaInput').value=v;saveConfig();renderGoal();});
 $('closeModal').addEventListener('click',closeAreaModal);
@@ -706,7 +796,12 @@ async function computeStreak(){
 }
 
 /* HISTORY */
-function recordAreaName(r){if(r.categoriaId)return areaMap[r.categoriaId]||r.categoriaNombre||'Sin área';if(r.categoria)return r.categoria;return 'Sin área';}
+function recordAreaNames(r){
+  if(Array.isArray(r.categoriaIds)&&r.categoriaIds.length)return r.categoriaIds.map((id,i)=>areaMap[id]||(r.categoriaNombres&&r.categoriaNombres[i])||'Sin área');
+  if(r.categoriaId)return [areaMap[r.categoriaId]||r.categoriaNombre||'Sin área'];
+  if(r.categoria)return [r.categoria];
+  return [];
+}
 function recordTime(r){if(r.horaInicio&&r.horaFin)return horaCol(r.horaInicio)+' – '+horaCol(r.horaFin);if(r.horaInicio)return horaCol(r.horaInicio)+(r.abierta?' · en curso':'');return '—';}
 function reactStats(arr){const r=arr.map(x=>x.reaccionMs).filter(x=>typeof x==='number');if(!r.length)return null;return{last:r[r.length-1],avg:r.reduce((a,b)=>a+b,0)/r.length,best:Math.min(...r)};}
 function escapeHtml(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
@@ -720,7 +815,7 @@ function renderDays(rows){
     const workList=list.filter(x=>x.tipo==='trabajo');
     const work=workList.length,met=work>=metaDiaria,st=reactStats(list);
     html+='<div class="dayrow"><div class="dh"><span class="date">'+date+'</span><span class="cnt'+(met?' met':'')+'">'+work+' <small>POMODOROS</small>'+(met?' ✓':'')+'</span></div>';
-    const cat={};workList.forEach(x=>{const k=recordAreaName(x);cat[k]=(cat[k]||0)+1;});
+    const cat={};workList.forEach(x=>{const ns=recordAreaNames(x);if(!ns.length){cat['Sin área']=(cat['Sin área']||0)+1;}else ns.forEach(k=>{cat[k]=(cat[k]||0)+1;});});
     const ck=Object.keys(cat).sort((a,b)=>cat[b]-cat[a]);
     if(ck.length)html+='<div class="breakdown">'+ck.map(k=>'<b>'+cat[k]+'</b> '+escapeHtml(k)).join(' · ')+'</div>';
     if(st)html+='<div class="reactstats"><span>últ <b>'+(st.last/1000).toFixed(2)+'s</b></span><span>prom <b>'+(st.avg/1000).toFixed(2)+'s</b></span><span class="best">mejor <b>'+(st.best/1000).toFixed(2)+'s</b></span></div>';
@@ -728,9 +823,12 @@ function renderDays(rows){
     let pn=0,t='';
     tl.forEach(r=>{
       const rng=recordTime(r);
-      if(r.tipo==='trabajo'){pn++;const meta=[];const an=recordAreaName(r);if(an&&an!=='Sin área')meta.push(escapeHtml(an));if(typeof r.reaccionMs==='number')meta.push('⚡'+(r.reaccionMs/1000).toFixed(2)+'s');t+='<div class="tl work"><span class="tt">'+rng+'</span><span class="ic">●</span><span class="tn">Pomodoro '+pn+'</span>'+(meta.length?' <span class="meta">· '+meta.join(' · ')+'</span>':'')+'</div>';if(r.nota&&r.nota.trim())t+='<div class="tl-note">'+escapeHtml(r.nota)+'</div>';}
+      if(r.tipo==='trabajo'){pn++;const meta=[];const ans=recordAreaNames(r).filter(n=>n&&n!=='Sin área');if(ans.length)meta.push(escapeHtml(ans.join(', ')));if(typeof r.reaccionMs==='number')meta.push('⚡'+(r.reaccionMs/1000).toFixed(2)+'s');t+='<div class="tl work"><span class="tt">'+rng+'</span><span class="ic">●</span><span class="tn">Pomodoro '+pn+'</span>'+(meta.length?' <span class="meta">· '+meta.join(' · ')+'</span>':'')+'</div>';if(r.nota&&r.nota.trim())t+='<div class="tl-note">'+escapeHtml(r.nota)+'</div>';}
       else if(r.tipo==='temporizador'){const d=(r.horaInicio&&r.horaFin)?durTxt(r.horaFin-r.horaInicio):(r.duracionMin?r.duracionMin+' min':'');t+='<div class="tl timer"><span class="tt">'+rng+'</span><span class="ic">⏱</span><span class="tn">'+escapeHtml(r.nombre||'Timer')+'</span>'+(d?' <span class="meta">('+d+')</span>':'')+'</div>';}
       else if(r.tipo==='actividad'){const d=(r.horaInicio&&r.horaFin)?durTxt(r.horaFin-r.horaInicio):'';t+='<div class="tl act"><span class="tt">'+rng+'</span><span class="ic">🚶</span><span class="tn">'+escapeHtml(r.nombre||'Actividad')+'</span>'+(d?' <span class="meta">('+d+')</span>':'')+'</div>';}
+      else if(r.tipo==='despertar'){const sd=r.suenoMs?durTxt(r.suenoMs):'';t+='<div class="tl wake"><span class="tt">'+rng+'</span><span class="ic">☀️</span><span class="tn">Despertó</span>'+(sd?' <span class="meta">· durmió '+sd+'</span>':'')+'</div>';}
+      else if(r.tipo==='dormir'){const d=(r.horaInicio&&r.horaFin)?durTxt(r.horaFin-r.horaInicio):'';t+='<div class="tl sleep"><span class="tt">'+rng+'</span><span class="ic">🌙</span><span class="tn">A dormir</span>'+(d?' <span class="meta">('+d+')</span>':'')+'</div>';}
+      else if(r.tipo==='rutina'){const it=(r.items&&r.items.length)?r.items.join(', '):'';const ex=[it,r.nota].filter(Boolean).join(' · ');t+='<div class="tl rutina"><span class="tt">'+rng+'</span><span class="ic">✅</span><span class="tn">Rutina</span>'+(ex?' <span class="meta">· '+escapeHtml(ex)+'</span>':'')+'</div>';}
     });
     if(t)html+='<div class="timeline">'+t+'</div>';
     html+='</div>';
@@ -780,7 +878,7 @@ function download(name,text,type){const blob=new Blob([text],{type});const url=U
 $('expJson').addEventListener('click',async()=>{download('foco_'+todayStr()+'.json',JSON.stringify(await allRows(),null,2),'application/json');toast('Exportado JSON');});
 $('expCsv').addEventListener('click',async()=>{
   const rows=await allRows();const head=['fecha','tipo','nombre','area','horaInicio','horaFin','duracionMin','reaccionSeg','nota'];const lines=[head.join(',')];
-  rows.forEach(r=>{lines.push([r.fecha,r.tipo,'"'+escapeCsv(r.nombre||'')+'"','"'+escapeCsv(r.tipo==='trabajo'?recordAreaName(r):'')+'"','"'+horaCol(r.horaInicio)+'"','"'+horaCol(r.horaFin)+'"',(r.duracionMin!=null?r.duracionMin:''),(typeof r.reaccionMs==='number'?(r.reaccionMs/1000).toFixed(2):''),'"'+escapeCsv(r.nota||'')+'"'].join(','));});
+  rows.forEach(r=>{lines.push([r.fecha,r.tipo,'"'+escapeCsv(r.nombre||'')+'"','"'+escapeCsv(r.tipo==='trabajo'?recordAreaNames(r).join(' | '):'')+'"','"'+horaCol(r.horaInicio)+'"','"'+horaCol(r.horaFin)+'"',(r.duracionMin!=null?r.duracionMin:''),(typeof r.reaccionMs==='number'?(r.reaccionMs/1000).toFixed(2):''),'"'+escapeCsv(r.nota||'')+'"'].join(','));});
   download('foco_'+todayStr()+'.csv',lines.join('\n'),'text/csv');toast('Exportado CSV');
 });
 
@@ -793,6 +891,56 @@ $('userBtn').addEventListener('click',openPanel);
 $('closePanel').addEventListener('click',closePanel);
 scrim.addEventListener('click',closePanel);
 
+/* MI DÍA */
+async function logWake(){
+  if(wokeToday){toast('Ya marcaste tu despertar de hoy');return;}
+  const ts=Date.now();let suenoMs=null;
+  if(openSleep){suenoMs=ts-openSleep.horaInicio;try{await updateDoc(openSleep.ref,{horaFin:ts,abierta:false,duracionMin:Math.round(suenoMs/60000)});}catch(e){console.error(e);}openSleep=null;}
+  await addRecord({tipo:'despertar',horaInicio:ts,horaFin:null,nota:'',suenoMs});
+  wokeToday=true;wakeTs=ts;renderDay();
+  toast('☀️ ¡Buenos días! Despertaste a las '+horaCol(ts));
+}
+async function logSleep(){
+  const ts=Date.now();
+  if(openSleep){try{await deleteDoc(openSleep.ref);}catch(e){console.error(e);}}
+  const ref=await addRecord({tipo:'dormir',horaInicio:ts,horaFin:null,abierta:true,nota:''});
+  if(ref)openSleep={ref,horaInicio:ts};
+  renderDay();
+  const p=$('dayPhrase');p.textContent=fraseDelDia();p.classList.add('show');
+  toast('🌙 A descansar · '+horaCol(ts));
+}
+async function saveRutina(){
+  const nota=$('rutinaNota').value.trim();
+  if(!rutinaSel.length&&!nota){toast('Elige algo o escribe una nota');return;}
+  await addRecord({tipo:'rutina',items:rutinaSel.slice(),nota,horaInicio:Date.now(),horaFin:null});
+  rutinaSel=[];$('rutinaNota').value='';renderRutina();
+  toast('Rutina guardada ✓');
+}
+function renderRutina(){
+  const c=$('rutinaChips');c.innerHTML='';
+  RUTINA_DEF.forEach(n=>{const b=document.createElement('button');b.className='chip'+(rutinaSel.includes(n)?' sel':'');b.textContent=n;b.onclick=()=>{const i=rutinaSel.indexOf(n);if(i>=0)rutinaSel.splice(i,1);else rutinaSel.push(n);renderRutina();};c.appendChild(b);});
+}
+function renderDay(){
+  const ws=$('wakeSection');
+  if(wokeToday&&wakeTs){
+    let sub=diffTxt(minsOfDay(wakeTs),metaDespertar,false);
+    if(firstWorkTs&&firstWorkTs>wakeTs)sub+=' · 1er pomodoro '+durTxt(firstWorkTs-wakeTs)+' después';
+    ws.innerHTML='<div class="day-summary">☀️ Despertaste a las <b>'+horaCol(wakeTs)+'</b><div class="day-sub">'+sub+'</div></div>';
+  }else{ws.innerHTML='<button class="day-big-btn wake" id="wakeBtn">☀️ Ya desperté</button>';$('wakeBtn').onclick=logWake;}
+  $('sleepSection').innerHTML='<button class="day-big-btn sleep" id="sleepBtn">🌙 Me voy a descansar</button>';
+  $('sleepBtn').onclick=logSleep;
+  $('metaWakeInput').value=metaDespertar;$('metaSleepInput').value=metaDormir;
+  renderRutina();
+}
+async function openDayModal(){dayModal.classList.add('show');const p=$('dayPhrase');p.classList.remove('show');p.textContent='';await loadDayInfo();renderDay();}
+function closeDayModal(){dayModal.classList.remove('show');}
+$('dayBtn').addEventListener('click',openDayModal);
+$('closeDay').addEventListener('click',closeDayModal);
+$('saveRutina').addEventListener('click',saveRutina);
+$('metaWakeInput').addEventListener('change',()=>{metaDespertar=$('metaWakeInput').value||'06:00';saveConfig();renderDay();});
+$('metaSleepInput').addEventListener('change',()=>{metaDormir=$('metaSleepInput').value||'22:00';saveConfig();renderDay();});
+dayModal.addEventListener('click',e=>{if(e.target===dayModal)closeDayModal();});
+
 /* AUTH */
 $('loginBtn').addEventListener('click',async()=>{try{await signInWithPopup(auth,provider);}catch(e){console.error(e);toast('No se pudo iniciar sesión');}});
 $('logoutBtn').addEventListener('click',()=>signOut(auth));
@@ -802,7 +950,7 @@ onAuthStateChanged(auth,async user=>{
     loginEl.style.display='none';appEl.classList.add('on');
     setAccent();paint();
     await loadConfig();watchToday();computeStreak();
-    await loadOpenActivity();goReady();
+    await loadOpenActivity();await loadDayInfo();goReady();
   }else{uid=null;if(todayUnsub){todayUnsub();todayUnsub=null;}appEl.classList.remove('on');loginEl.style.display='flex';}
 });
 
@@ -811,7 +959,7 @@ let toastT=null;
 function toast(msg){const el=$('toast');el.textContent=msg;el.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove('show'),2200);}
 
 /* KEYBOARD */
-document.addEventListener('keydown',e=>{if(e.code==='Space'&&appEl.classList.contains('on')&&!areaModal.classList.contains('show')&&!timerModal.classList.contains('show')&&document.activeElement.tagName!=='TEXTAREA'&&document.activeElement.tagName!=='INPUT'){e.preventDefault();primaryBtn.click();}});
+document.addEventListener('keydown',e=>{if(e.code==='Space'&&appEl.classList.contains('on')&&!areaModal.classList.contains('show')&&!timerModal.classList.contains('show')&&!dayModal.classList.contains('show')&&document.activeElement.tagName!=='TEXTAREA'&&document.activeElement.tagName!=='INPUT'){e.preventDefault();primaryBtn.click();}});
 
 setAccent();paint();renderAreas();renderGoal();setSecondaryMode('ready');showAreas();
 </script>
