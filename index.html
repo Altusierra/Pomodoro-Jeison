@@ -191,6 +191,9 @@
   .rlabel{font-family:'JetBrains Mono';font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--mute)}
   .day-phrase{display:none;margin-top:16px;padding:18px;border-radius:12px;background:color-mix(in srgb,var(--rest) 12%,transparent);border:1px solid color-mix(in srgb,var(--rest) 32%,transparent);color:var(--ink);font-size:15px;line-height:1.55;font-style:italic;text-align:center}
   .day-phrase.show{display:block}
+  .wake-row{display:flex;gap:10px;align-items:stretch}
+  .wake-row input[type=time]{flex:none;background:var(--surface-2);border:1px solid var(--line);color:var(--ink);border-radius:10px;padding:0 12px;font-family:'JetBrains Mono';font-size:15px}
+  .wake-row .day-big-btn{flex:1}
   .metarow label{font-family:'JetBrains Mono';font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--mute)}
   .metarow input{width:90px;background:var(--surface-2);border:1px solid var(--line);border-radius:9px;color:var(--ink);font-family:'Chakra Petch';font-weight:700;font-size:22px;padding:7px 12px;text-align:center}
   .modal-foot{display:flex;justify-content:flex-end;gap:10px;margin-top:22px}
@@ -213,6 +216,9 @@
   .tl.timer .ic{color:var(--gold)} .tl.act .ic{color:var(--rest)}
   .tl.wake .ic{color:var(--gold)} .tl.sleep .ic{color:var(--rest)} .tl.rutina .ic{color:var(--rest-soft)}
   .tl .meta{color:var(--faint)}
+  .tl-gap{font-family:'JetBrains Mono';font-size:11px;margin:2px 0 2px 24px;padding-left:10px;border-left:2px dashed var(--line);display:flex;flex-wrap:wrap;gap:14px}
+  .g-rest{color:#5B9DFF}
+  .g-dead{color:#34D058}
   .tl-note{font-size:12px;color:var(--mute);margin:1px 0 4px 127px;line-height:1.4}
   @media (max-width:560px){.telemetry{gap:11px}.secondary{flex-wrap:wrap;justify-content:center}.primary{min-width:200px;padding:15px 32px}.goaltxt{min-width:auto}.tl{flex-wrap:wrap}.tl .tt{min-width:100px}.tl-note{margin-left:0}}
   #app.compact .dial{width:min(42vh,72vw,380px)}
@@ -429,7 +435,7 @@ let qctx=null;                 // quick timer context
 let openActivity=null,ausInt=null;
 let metaDespertar='06:00',metaDormir='22:00';
 let wokeToday=false,wakeTs=null,firstWorkTs=null,openSleep=null,rutinaSel=[];
-const RUTINA_DEF=['Bañé','Leí','Medité','Desayuné','Entrené','Oré'];
+const RUTINA_DEF=['Bañé','Leí','Oré','Tomé agua'];
 const FRASES=[
   'Hoy mataste al que eras ayer. Mañana despiertas más fuerte. Descansa, campeón.',
   'Cerraste el día como un ganador. El sueño es donde se construye el siguiente nivel.',
@@ -450,6 +456,8 @@ const FRASES=[
 function fraseDelDia(){const day=Math.floor(Date.now()/86400000);return FRASES[day%FRASES.length];}
 function parseHHMM(s){const p=(s||'0:0').split(':');return (+p[0]||0)*60+(+p[1]||0);}
 function minsOfDay(ts){const s=new Date(ts).toLocaleTimeString('en-GB',{timeZone:'America/Bogota',hour12:false,hour:'2-digit',minute:'2-digit'});const p=s.split(':');return (+p[0])*60+(+p[1]);}
+function nowHHMM(){return new Date().toLocaleTimeString('en-GB',{timeZone:'America/Bogota',hour12:false,hour:'2-digit',minute:'2-digit'});}
+function hhmmToTodayTs(hhmm){return new Date(todayStr()+'T'+hhmm+':00-05:00').getTime();}
 function hhmmTo12(s){let mins=parseHHMM(s),h=Math.floor(mins/60),m=mins%60;const ap=h>=12?'p. m.':'a. m.';h=h%12;if(h===0)h=12;return h+':'+String(m).padStart(2,'0')+' '+ap;}
 function durMin(m){m=Math.max(0,Math.round(m));if(m<60)return m+' min';const h=Math.floor(m/60),mm=m%60;return h+' h'+(mm?' '+mm+' m':'');}
 function diffTxt(actualMins,metaStr,wrapNight){let a=actualMins;if(wrapNight&&a<720)a+=1440;const diff=a-parseHHMM(metaStr),ad=Math.abs(diff),g=hhmmTo12(metaStr);if(ad<=3)return '🎯 Justo en tu meta ('+g+')';if(diff<0)return '✅ '+durMin(ad)+' antes de tu meta ('+g+')';return '⏰ '+durMin(ad)+' después de tu meta ('+g+')';}
@@ -803,6 +811,17 @@ function recordAreaNames(r){
   return [];
 }
 function recordTime(r){if(r.horaInicio&&r.horaFin)return horaCol(r.horaInicio)+' – '+horaCol(r.horaFin);if(r.horaInicio)return horaCol(r.horaInicio)+(r.abierta?' · en curso':'');return '—';}
+function gapLine(a,b,all){
+  if(!a||!a.horaFin||!b||!b.horaInicio)return '';
+  const gap=b.horaInicio-a.horaFin;
+  if(gap<=30000||gap>1000*60*180)return '';
+  let rest=0;
+  all.forEach(d=>{if(d.tipo==='descanso'&&d.horaInicio&&d.horaFin&&d.horaInicio>=a.horaFin-2000&&d.horaInicio<b.horaInicio)rest+=Math.max(0,d.horaFin-d.horaInicio);});
+  const dead=Math.max(0,gap-rest),parts=[];
+  if(rest>=30000)parts.push('<span class="g-rest">☕ '+durTxt(rest)+' descanso</span>');
+  if(dead>=30000)parts.push('<span class="g-dead">↕ '+durTxt(dead)+' para arrancar</span>');
+  return parts.length?'<div class="tl-gap">'+parts.join('')+'</div>':'';
+}
 function reactStats(arr){const r=arr.map(x=>x.reaccionMs).filter(x=>typeof x==='number');if(!r.length)return null;return{last:r[r.length-1],avg:r.reduce((a,b)=>a+b,0)/r.length,best:Math.min(...r)};}
 function escapeHtml(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 function renderDays(rows){
@@ -820,8 +839,9 @@ function renderDays(rows){
     if(ck.length)html+='<div class="breakdown">'+ck.map(k=>'<b>'+cat[k]+'</b> '+escapeHtml(k)).join(' · ')+'</div>';
     if(st)html+='<div class="reactstats"><span>últ <b>'+(st.last/1000).toFixed(2)+'s</b></span><span>prom <b>'+(st.avg/1000).toFixed(2)+'s</b></span><span class="best">mejor <b>'+(st.best/1000).toFixed(2)+'s</b></span></div>';
     const tl=list.filter(x=>x.tipo!=='descanso').slice().sort((a,b)=>(a.horaInicio||0)-(b.horaInicio||0));
-    let pn=0,t='';
+    let pn=0,t='',prev=null;
     tl.forEach(r=>{
+      t+=gapLine(prev,r,list);
       const rng=recordTime(r);
       if(r.tipo==='trabajo'){pn++;const meta=[];const ans=recordAreaNames(r).filter(n=>n&&n!=='Sin área');if(ans.length)meta.push(escapeHtml(ans.join(', ')));if(typeof r.reaccionMs==='number')meta.push('⚡'+(r.reaccionMs/1000).toFixed(2)+'s');t+='<div class="tl work"><span class="tt">'+rng+'</span><span class="ic">●</span><span class="tn">Pomodoro '+pn+'</span>'+(meta.length?' <span class="meta">· '+meta.join(' · ')+'</span>':'')+'</div>';if(r.nota&&r.nota.trim())t+='<div class="tl-note">'+escapeHtml(r.nota)+'</div>';}
       else if(r.tipo==='temporizador'){const d=(r.horaInicio&&r.horaFin)?durTxt(r.horaFin-r.horaInicio):(r.duracionMin?r.duracionMin+' min':'');t+='<div class="tl timer"><span class="tt">'+rng+'</span><span class="ic">⏱</span><span class="tn">'+escapeHtml(r.nombre||'Timer')+'</span>'+(d?' <span class="meta">('+d+')</span>':'')+'</div>';}
@@ -829,6 +849,7 @@ function renderDays(rows){
       else if(r.tipo==='despertar'){const sd=r.suenoMs?durTxt(r.suenoMs):'';t+='<div class="tl wake"><span class="tt">'+rng+'</span><span class="ic">☀️</span><span class="tn">Despertó</span>'+(sd?' <span class="meta">· durmió '+sd+'</span>':'')+'</div>';}
       else if(r.tipo==='dormir'){const d=(r.horaInicio&&r.horaFin)?durTxt(r.horaFin-r.horaInicio):'';t+='<div class="tl sleep"><span class="tt">'+rng+'</span><span class="ic">🌙</span><span class="tn">A dormir</span>'+(d?' <span class="meta">('+d+')</span>':'')+'</div>';}
       else if(r.tipo==='rutina'){const it=(r.items&&r.items.length)?r.items.join(', '):'';const ex=[it,r.nota].filter(Boolean).join(' · ');t+='<div class="tl rutina"><span class="tt">'+rng+'</span><span class="ic">✅</span><span class="tn">Rutina</span>'+(ex?' <span class="meta">· '+escapeHtml(ex)+'</span>':'')+'</div>';}
+      prev=r;
     });
     if(t)html+='<div class="timeline">'+t+'</div>';
     html+='</div>';
@@ -894,8 +915,9 @@ scrim.addEventListener('click',closePanel);
 /* MI DÍA */
 async function logWake(){
   if(wokeToday){toast('Ya marcaste tu despertar de hoy');return;}
-  const ts=Date.now();let suenoMs=null;
-  if(openSleep){suenoMs=ts-openSleep.horaInicio;try{await updateDoc(openSleep.ref,{horaFin:ts,abierta:false,duracionMin:Math.round(suenoMs/60000)});}catch(e){console.error(e);}openSleep=null;}
+  const inp=$('wakeTimeInput');const hhmm=(inp&&inp.value)?inp.value:nowHHMM();
+  const ts=hhmmToTodayTs(hhmm);let suenoMs=null;
+  if(openSleep){if(ts>openSleep.horaInicio)suenoMs=ts-openSleep.horaInicio;try{await updateDoc(openSleep.ref,{horaFin:ts,abierta:false,duracionMin:suenoMs?Math.round(suenoMs/60000):null});}catch(e){console.error(e);}openSleep=null;}
   await addRecord({tipo:'despertar',horaInicio:ts,horaFin:null,nota:'',suenoMs});
   wokeToday=true;wakeTs=ts;renderDay();
   toast('☀️ ¡Buenos días! Despertaste a las '+horaCol(ts));
@@ -926,7 +948,7 @@ function renderDay(){
     let sub=diffTxt(minsOfDay(wakeTs),metaDespertar,false);
     if(firstWorkTs&&firstWorkTs>wakeTs)sub+=' · 1er pomodoro '+durTxt(firstWorkTs-wakeTs)+' después';
     ws.innerHTML='<div class="day-summary">☀️ Despertaste a las <b>'+horaCol(wakeTs)+'</b><div class="day-sub">'+sub+'</div></div>';
-  }else{ws.innerHTML='<button class="day-big-btn wake" id="wakeBtn">☀️ Ya desperté</button>';$('wakeBtn').onclick=logWake;}
+  }else{ws.innerHTML='<div class="rlabel" style="margin-bottom:6px">¿A qué hora despertaste?</div><div class="wake-row"><input type="time" id="wakeTimeInput"><button class="day-big-btn wake" id="wakeBtn">☀️ Ya desperté</button></div>';$('wakeTimeInput').value=nowHHMM();$('wakeBtn').onclick=logWake;}
   $('sleepSection').innerHTML='<button class="day-big-btn sleep" id="sleepBtn">🌙 Me voy a descansar</button>';
   $('sleepBtn').onclick=logSleep;
   $('metaWakeInput').value=metaDespertar;$('metaSleepInput').value=metaDormir;
