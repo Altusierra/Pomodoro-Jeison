@@ -100,6 +100,22 @@
   .livenote{display:none;flex-direction:column;align-items:center;width:100%;max-width:520px;margin-bottom:2px}
   .livenote.show{display:flex}
   .livenote .note{height:54px}
+  .remwrap{display:none;flex-direction:column;align-items:center;gap:8px;width:100%;max-width:520px;margin-bottom:2px}
+  .remwrap.show{display:flex}
+  .remadd{display:flex;gap:6px;width:100%}
+  .remadd input{background:var(--surface);border:1px solid var(--line);color:var(--ink);border-radius:9px;padding:8px 10px;font-family:'Inter';font-size:14px}
+  .remadd input[type=number]{width:62px;flex:none}
+  .remadd input[type=text]{flex:1}
+  .remadd .sbtn{flex:none}
+  .remlist{display:flex;flex-direction:column;gap:6px;width:100%}
+  .rem-item{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:8px 12px;font-size:14px;color:var(--ink)}
+  .rem-item .rem-name{flex:1;font-family:'JetBrains Mono';font-size:13px}
+  .rem-item .rem-time{font-family:'JetBrains Mono';font-size:13px;color:var(--gold)}
+  .rem-item .rem-x{background:none;border:none;color:var(--mute);cursor:pointer;font-size:13px}
+  .rem-item.fired{border-color:var(--gold);background:color-mix(in srgb,var(--gold) 14%,transparent)}
+  .rem-btns{display:flex;gap:6px}
+  .rem-b{font-family:'JetBrains Mono';font-size:11px;font-weight:700;letter-spacing:.04em;border-radius:8px;padding:7px 11px;cursor:pointer;border:1px solid var(--line);background:var(--surface-2);color:var(--ink)}
+  .rem-b.pausar{background:var(--gold);color:#0a0a0a;border:none}
   .noteq{font-family:'JetBrains Mono';font-size:12px;letter-spacing:.1em;color:var(--mute);text-transform:uppercase;text-align:center}
   .noteq .ok{color:var(--rest)}
   textarea.note{width:100%;background:var(--surface);border:1px solid var(--line);border-radius:12px;color:var(--ink);font-family:'Inter';font-size:15px;padding:14px 16px;resize:none;height:64px;transition:border-color .15s}
@@ -300,6 +316,11 @@
 
     <div class="livenote" id="liveNoteWrap"><textarea class="note" id="liveNote" placeholder="📝 Notas del bloque (opcional) — escribe mientras trabajas…"></textarea></div>
 
+    <div class="remwrap" id="remWrap">
+      <div class="remadd"><input type="number" id="remMin" min="1" max="180" placeholder="min"><input type="text" id="remName" maxlength="30" placeholder="Recordatorio (ej. Café)"><button class="sbtn" id="remAdd">⏰ +</button></div>
+      <div class="remlist" id="remList"></div>
+    </div>
+
     <button class="primary" id="primaryBtn">INICIAR</button>
     <div class="secondary">
       <button class="sbtn" id="resetBtn">Reiniciar</button>
@@ -410,7 +431,7 @@ const SCHEMA=4;
 const $=id=>document.getElementById(id);
 const appEl=$('app'),loginEl=$('login');
 const mm=$('mm'),ss=$('ss'),subline=$('subline'),eyebrow=$('eyebrow'),prog=$('prog'),reactNum=$('reactNum');
-const primaryBtn=$('primaryBtn'),notewrap=$('notewrap'),noteInput=$('noteInput'),lastReact=$('lastReact'),noteQuestion=$('noteQuestion'),liveNoteWrap=$('liveNoteWrap'),liveNote=$('liveNote');
+const primaryBtn=$('primaryBtn'),notewrap=$('notewrap'),noteInput=$('noteInput'),lastReact=$('lastReact'),noteQuestion=$('noteQuestion'),liveNoteWrap=$('liveNoteWrap'),liveNote=$('liveNote'),remWrap=$('remWrap'),remList=$('remList'),remMin=$('remMin'),remName=$('remName'),remAdd=$('remAdd');
 const editwrap=$('editwrap'),editWork=$('editWork'),editRest=$('editRest');
 const phaseLabel=$('phaseLabel'),cycleNum=$('cycleNum');
 const areachips=$('areachips'),segs=$('segs'),goaltxt=$('goaltxt'),streakNum=$('streakNum');
@@ -552,10 +573,10 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden)onTick();}
 
 /* FIRESTORE WRITE */
 async function addRecord(obj){if(!uid)return null;try{return await addDoc(collection(db,'users',uid,'pomodoros'),Object.assign({fecha:todayStr(),schemaVersion:SCHEMA,creadoEn:serverTimestamp()},obj));}catch(e){console.error(e);toast('No se pudo guardar');return null;}}
-async function saveBlock(tipo,duracionMin,reaccionMs,categoriaIds,horaInicio,horaFin){
+async function saveBlock(tipo,duracionMin,reaccionMs,categoriaIds,horaInicio,horaFin,extra){
   const ids=Array.isArray(categoriaIds)?categoriaIds.slice():(categoriaIds?[categoriaIds]:[]);
   const categoriaNombres=ids.map(id=>areaMap[id]||null);
-  return await addRecord({tipo,duracionMin,reaccionMs,categoriaIds:ids,categoriaNombres,nota:'',horaInicio:horaInicio||null,horaFin:horaFin||null});
+  return await addRecord(Object.assign({tipo,duracionMin,reaccionMs,categoriaIds:ids,categoriaNombres,nota:'',horaInicio:horaInicio||null,horaFin:horaFin||null},extra||{}));
 }
 
 /* POMODORO ENGINE */
@@ -564,17 +585,18 @@ async function startPhase(){
   if(openActivity)await closeOpenActivity();
   if(status==='post'){await commitNote();pendingDocRef=null;}
   const resuming=(status==='paused');
+  if(resuming && pauseStartTs!==null){const dms=Date.now()-pauseStartTs;pausedMs+=dms;pauseList.push({nombre:pendingPauseLabel||'Pausa',ms:dms});pauseStartTs=null;pendingPauseLabel=null;}
   hideNote();hideEdit();hideAusInput();
   if(phase==='trabajo')currentAreaIds=selectedAreaIds.slice();
   if(!resuming)blockStartTs=Date.now();
-  if(!resuming && phase==='trabajo')liveNote.value='';
+  if(!resuming && phase==='trabajo'){liveNote.value='';pausedMs=0;pauseList=[];pauseStartTs=null;clearReminders();}
   status='running';endAt=Date.now()+remainingMs;
   appEl.classList.remove('ring');areachips.classList.remove('show');
-  if(phase==='trabajo')showLiveNote();else hideLiveNote();
+  if(phase==='trabajo'){showLiveNote();showRem();}else{hideLiveNote();hideRem();}
   setSecondaryMode('run');setSub(phase==='trabajo'?'EN ACCIÓN':'RECARGA');setPrimary('PARAR');
   startHB();paint();
 }
-function pausePhase(){status='paused';remainingMs=endAt-Date.now();stopHB();hideLiveNote();setSub('En pausa');setPrimary('INICIAR');setSecondaryMode('ready');showAreas();paint();}
+function pausePhase(){status='paused';remainingMs=endAt-Date.now();stopHB();hideLiveNote();if(pauseStartTs===null)pauseStartTs=Date.now();setSub('En pausa');setPrimary('INICIAR');setSecondaryMode('ready');showAreas();paint();}
 function fireAlarm(){
   stopHB();blockEndTs=Date.now();status='ring';appEl.classList.add('ring');areachips.classList.remove('show');setSecondaryMode('ring');
   setSub('¡APÁGALA Y SIGUE!');setPrimary('APAGAR ALARMA',true);
@@ -587,7 +609,9 @@ async function silenceAlarm(){
   lastReactMs=Math.round(performance.now()-ringStart);
   appEl.classList.remove('ring');
   const finished=phase,finishedAreaIds=currentAreaIds.slice();
-  const ref=await saveBlock(finished,phaseDurMs(finished)/60000,lastReactMs,finished==='trabajo'?finishedAreaIds:[],blockStartTs,blockEndTs);
+  const pauseExtra=(finished==='trabajo'&&pausedMs>0)?{pausadoMs:pausedMs,pausas:pauseList.slice()}:null;
+  const ref=await saveBlock(finished,phaseDurMs(finished)/60000,lastReactMs,finished==='trabajo'?finishedAreaIds:[],blockStartTs,blockEndTs,pauseExtra);
+  clearReminders();pausedMs=0;pauseList=[];pauseStartTs=null;pendingPauseLabel=null;
   if(finished==='trabajo'){
     phase='descanso';remainingMs=phaseDurMs(phase);setAccent();paint();
     status='post';pendingDocRef=ref;
@@ -605,7 +629,7 @@ function fullReset(){
   stopAlarm();stopFlash();stopHB();clearInterval(reactTimer);clearInterval(ausInt);
   workMin=DEF_WORK;restMin=DEF_REST;editWork.value=DEF_WORK;editRest.value=DEF_REST;
   phase='trabajo';status='idle';cycle=1;remainingMs=workMin*60000;openActivity=null;qctx=null;
-  appEl.classList.remove('ring');hideNote();hideEdit();hideAusInput();hideLiveNote();liveNote.value='';setAccent();paint();
+  appEl.classList.remove('ring');hideNote();hideEdit();hideAusInput();hideLiveNote();liveNote.value='';clearReminders();pausedMs=0;pauseList=[];pauseStartTs=null;pendingPauseLabel=null;setAccent();paint();
   setSub('Listo para arrancar');setPrimary('INICIAR');setSecondaryMode('ready');showAreas();renderPending();toast('Reiniciado a 25 / 5');
 }
 
@@ -613,7 +637,7 @@ function fullReset(){
 async function launchQTimer(nombre,min){
   unlockAudio();ensureNotif();
   if(status==='post'){await commitNote();pendingDocRef=null;}
-  hideNote();hideEdit();hideAusInput();areachips.classList.remove('show');
+  hideNote();hideEdit();hideAusInput();areachips.classList.remove('show');clearReminders();
   qctx={nombre,targetMin:min,horaInicio:Date.now(),endAt:Date.now()+min*60000};
   status='qtimer';setColor('--gold');appEl.classList.remove('ring');
   eyebrow.textContent=nombre.toUpperCase();phaseLabel.textContent='Timer';
@@ -634,7 +658,7 @@ async function endQTimer(){
 /* INICIO / READY */
 function goReady(){
   status='idle';appEl.classList.remove('ring');setAccent();paint();
-  hideNote();hideAusInput();hideEdit();hideLiveNote();
+  hideNote();hideAusInput();hideEdit();hideLiveNote();clearReminders();
   setSub('Listo para arrancar');setPrimary('INICIAR');
   setSecondaryMode('ready');showAreas();renderPending();
 }
@@ -712,6 +736,43 @@ function showNote(){notewrap.classList.add('show');appEl.classList.add('compact'
 function hideNote(){notewrap.classList.remove('show');appEl.classList.remove('compact');}
 function showLiveNote(){liveNoteWrap.classList.add('show');}
 function hideLiveNote(){liveNoteWrap.classList.remove('show');}
+
+/* REMINDERS (mini-temporizadores dentro del pomodoro) */
+let reminders=[],remTick=null,pausedMs=0,pauseStartTs=null,pauseList=[],pendingPauseLabel=null;
+function remBeep(){if(!actx)return;[0,0.18,0.36].forEach((d,i)=>{const t=actx.currentTime+d;const o=actx.createOscillator(),g=actx.createGain();o.type='sine';o.frequency.setValueAtTime(i%2?820:560,t);g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(0.25,t+0.01);g.gain.exponentialRampToValueAtTime(0.0001,t+0.16);o.connect(g).connect(actx.destination);o.start(t);o.stop(t+0.18);});}
+function showRem(){remWrap.classList.add('show');}
+function hideRem(){remWrap.classList.remove('show');}
+function startRemTick(){if(remTick)return;remTick=setInterval(remTickFn,1000);}
+function stopRemTick(){if(remTick){clearInterval(remTick);remTick=null;}}
+function clearReminders(){reminders=[];stopRemTick();if(remList)remList.innerHTML='';hideRem();}
+function addReminder(){
+  unlockAudio();ensureNotif();
+  const min=parseInt(remMin.value,10),nombre=(remName.value||'').trim();
+  if(!min||min<1){toast('Pon los minutos');return;}
+  if(!nombre){toast('Ponle un nombre');return;}
+  reminders.push({id:'r_'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),nombre,targetMs:min*60000,startedAt:Date.now(),fired:false});
+  remMin.value='';remName.value='';renderRem();startRemTick();
+}
+function removeReminder(id){reminders=reminders.filter(r=>r.id!==id);renderRem();if(!reminders.length)stopRemTick();}
+function dismissReminder(id){removeReminder(id);}
+function pauseForReminder(id){const r=reminders.find(x=>x.id===id);pendingPauseLabel=r?r.nombre:null;removeReminder(id);if(status==='running')pausePhase();}
+function remTickFn(){
+  const now=Date.now();
+  reminders.forEach(r=>{if(!r.fired&&now-r.startedAt>=r.targetMs){r.fired=true;remBeep();fireNotif('⏰ '+r.nombre,'Recordatorio de tu pomodoro.');}});
+  renderRem();
+  if(!reminders.length)stopRemTick();
+}
+function renderRem(){
+  if(!remList)return;
+  remList.innerHTML=reminders.map(r=>{
+    if(r.fired)return '<div class="rem-item fired"><span class="rem-name">🔔 ¡'+escapeHtml(r.nombre)+'!</span><span class="rem-btns"><button class="rem-b" data-act="seguir" data-id="'+r.id+'">Seguir</button><button class="rem-b pausar" data-act="pausar" data-id="'+r.id+'">Pausar 25m</button></span></div>';
+    const rem=Math.max(0,r.targetMs-(Date.now()-r.startedAt)),m=Math.floor(rem/60000),s=Math.floor((rem%60000)/1000);
+    return '<div class="rem-item"><span class="rem-name">⏰ '+escapeHtml(r.nombre)+'</span><span class="rem-time">'+m+':'+String(s).padStart(2,'0')+'</span><button class="rem-x" data-act="cancel" data-id="'+r.id+'" title="Cancelar">✕</button></div>';
+  }).join('');
+}
+remList.addEventListener('click',e=>{const b=e.target.closest('button[data-act]');if(!b)return;const id=b.dataset.id,act=b.dataset.act;if(act==='cancel')removeReminder(id);else if(act==='seguir')dismissReminder(id);else if(act==='pausar')pauseForReminder(id);});
+remAdd.addEventListener('click',addReminder);
+remName.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addReminder();}});
 let noteSaveT=null;
 noteInput.addEventListener('input',()=>{clearTimeout(noteSaveT);noteSaveT=setTimeout(commitNote,700);});
 async function commitNote(){if(!pendingDocRef)return;try{await updateDoc(pendingDocRef,{nota:noteInput.value.trim()});}catch(e){console.error(e);}}
@@ -843,7 +904,7 @@ function renderDays(rows){
     tl.forEach(r=>{
       t+=gapLine(prev,r,list);
       const rng=recordTime(r);
-      if(r.tipo==='trabajo'){pn++;const meta=[];const ans=recordAreaNames(r).filter(n=>n&&n!=='Sin área');if(ans.length)meta.push(escapeHtml(ans.join(', ')));if(typeof r.reaccionMs==='number')meta.push('⚡'+(r.reaccionMs/1000).toFixed(2)+'s');t+='<div class="tl work"><span class="tt">'+rng+'</span><span class="ic">●</span><span class="tn">Pomodoro '+pn+'</span>'+(meta.length?' <span class="meta">· '+meta.join(' · ')+'</span>':'')+'</div>';if(r.nota&&r.nota.trim())t+='<div class="tl-note">'+escapeHtml(r.nota)+'</div>';}
+      if(r.tipo==='trabajo'){pn++;const meta=[];const ans=recordAreaNames(r).filter(n=>n&&n!=='Sin área');if(ans.length)meta.push(escapeHtml(ans.join(', ')));if(typeof r.reaccionMs==='number')meta.push('⚡'+(r.reaccionMs/1000).toFixed(2)+'s');if(r.pausadoMs){const pns=(r.pausas||[]).map(p=>p.nombre).filter(n=>n&&n!=='Pausa');meta.push('⏸ pausado '+durTxt(r.pausadoMs)+(pns.length?' ('+escapeHtml(pns.join(', '))+')':''));}t+='<div class="tl work"><span class="tt">'+rng+'</span><span class="ic">●</span><span class="tn">Pomodoro '+pn+'</span>'+(meta.length?' <span class="meta">· '+meta.join(' · ')+'</span>':'')+'</div>';if(r.nota&&r.nota.trim())t+='<div class="tl-note">'+escapeHtml(r.nota)+'</div>';}
       else if(r.tipo==='temporizador'){const d=(r.horaInicio&&r.horaFin)?durTxt(r.horaFin-r.horaInicio):(r.duracionMin?r.duracionMin+' min':'');t+='<div class="tl timer"><span class="tt">'+rng+'</span><span class="ic">⏱</span><span class="tn">'+escapeHtml(r.nombre||'Timer')+'</span>'+(d?' <span class="meta">('+d+')</span>':'')+'</div>';}
       else if(r.tipo==='actividad'){const d=(r.horaInicio&&r.horaFin)?durTxt(r.horaFin-r.horaInicio):'';t+='<div class="tl act"><span class="tt">'+rng+'</span><span class="ic">🚶</span><span class="tn">'+escapeHtml(r.nombre||'Actividad')+'</span>'+(d?' <span class="meta">('+d+')</span>':'')+'</div>';}
       else if(r.tipo==='despertar'){const sd=r.suenoMs?durTxt(r.suenoMs):'';t+='<div class="tl wake"><span class="tt">'+rng+'</span><span class="ic">☀️</span><span class="tn">Despertó</span>'+(sd?' <span class="meta">· durmió '+sd+'</span>':'')+'</div>';}
